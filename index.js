@@ -1,6 +1,6 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { searchSumashTech } = require('./scrapers/sumashtech');
 const { searchAppleGadgets } = require('./scrapers/applegadgets');
 const { searchKryInternational } = require('./scrapers/kryinternational');
@@ -9,12 +9,19 @@ const { getCheapest, cleanPrice } = require('./utils/compare');
 const app = express();
 app.use(cors());
 
-// Define supported scrapers to make it scalable
+// If you want to serve frontend from here, uncomment below:
+// app.use(express.static(path.join(__dirname, 'public')));
+
 const scrapers = [
     { site: 'SumashTech', fn: searchSumashTech },
     { site: 'AppleGadgets', fn: searchAppleGadgets },
     { site: 'KryInternational', fn: searchKryInternational }
 ];
+
+// Basic root route (optional)
+app.get('/', (req, res) => {
+    res.send('📱 Phone Price Comparison API is running!');
+});
 
 app.get('/search', async (req, res) => {
     const { model } = req.query;
@@ -23,7 +30,6 @@ app.get('/search', async (req, res) => {
     const results = [];
 
     try {
-        // Run all scrapers in parallel
         const scrapes = await Promise.allSettled(scrapers.map(scraper => scraper.fn(model)));
 
         scrapes.forEach((result, index) => {
@@ -51,9 +57,8 @@ app.get('/search', async (req, res) => {
     }
 });
 
-
-
-
-app.listen(3000, () => {
-    console.log('\n🚀 Server running at http://localhost:3000');
+// Use PORT environment variable or 3000 locally
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`\n🚀 Server running at http://localhost:${port}`);
 });
