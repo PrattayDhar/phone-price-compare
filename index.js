@@ -1,4 +1,3 @@
-// index.js
 const express = require('express');
 const cors = require('cors');
 const { searchSumashTech } = require('./scrapers/sumashtech');
@@ -9,7 +8,6 @@ const { getCheapest, cleanPrice } = require('./utils/compare');
 const app = express();
 app.use(cors());
 
-// Define supported scrapers to make it scalable
 const scrapers = [
     { site: 'SumashTech', fn: searchSumashTech },
     { site: 'AppleGadgets', fn: searchAppleGadgets },
@@ -23,7 +21,6 @@ app.get('/search', async (req, res) => {
     const results = [];
 
     try {
-        // Run all scrapers in parallel
         const scrapes = await Promise.allSettled(scrapers.map(scraper => scraper.fn(model)));
 
         scrapes.forEach((result, index) => {
@@ -51,9 +48,7 @@ app.get('/search', async (req, res) => {
     }
 });
 
-
-
-
-app.listen(3000, () => {
-    console.log('\n🚀 Server running at http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`\n🚀 Server running at http://localhost:${PORT}`);
 });

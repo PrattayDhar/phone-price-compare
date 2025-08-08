@@ -1,55 +1,75 @@
-const express = require('express');
-const cors = require('cors');
-const { searchSumashTech } = require('./scrapers/sumashtech');
-const { searchAppleGadgets } = require('./scrapers/applegadgets');
-const { searchKryInternational } = require('./scrapers/kryinternational');
-const { getCheapest, cleanPrice } = require('./utils/compare');
+const puppeteer = require('puppeteer');
 
-const app = express();
-app.use(cors());
+async function searchSumashTech(model) {
+    console.log(`\n🔍 [SumashTech] Searching for: "${model}"`);
 
-const scrapers = [
-    { site: 'SumashTech', fn: searchSumashTech },
-    { site: 'AppleGadgets', fn: searchAppleGadgets },
-    { site: 'KryInternational', fn: searchKryInternational }
-];
+    const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
+    const page = await browser.newPage();
+    await page.goto('https://www.sumashtech.com/category/phone', { waitUntil: 'networkidle2' });
 
-app.get('/search', async (req, res) => {
-    const { model } = req.query;
-    if (!model) return res.status(400).json({ error: 'Phone model required' });
+    // ✅ Updated selector
+    await page.waitForSelector('input.filterInput[placeholder="Please specify the product you are looking for"]');
+    await page.type('input.filterInput[placeholder="Please specify the product you are looking for"]', model, { delay: 100 });
 
-    const results = [];
+    // ✅ Press Enter instead of clicking search button
+    await page.keyboard.press('Enter');
+    await page.waitForNavigation({ waitUntil: 'networkidle2' });
 
-    try {
-        const scrapes = await Promise.allSettled(scrapers.map(scraper => scraper.fn(model)));
+    await autoScroll(page);
+    await new Promise(resolve => setTimeout(resolve, 3000));
 
-        scrapes.forEach((result, index) => {
-            if (result.status === 'fulfilled' && result.value.found) {
-                results.push({ ...result.value, site: scrapers[index].site });
+    const productLink = await page.evaluate((model) => {
+        const cards = Array.from(document.querySelectorAll('.product__content'));
+        const searchTerm = model.trim().toLowerCase().replace(/\s+/g, ' ');
+        for (const card of cards) {
+            const title = card.querySelector('.product__title')?.innerText.trim().toLowerCase().replace(/\s+/g, ' ');
+            if (title && title.includes(searchTerm)) {
+                return card.querySelector('a')?.href || null;
             }
-        });
-
-        if (results.length === 0) {
-            return res.json({ found: false, message: 'No matching product on any site.' });
         }
+        return null;
+    }, model);
 
-        const recommended = getCheapest(results);
-
-        const comparison = results.map(item => ({
-            site: item.site,
-            title: item.title,
-            price: cleanPrice(item.salePrice || item.price)
-        })).sort((a, b) => a.price - b.price);
-
-        return res.json({ found: true, results, recommended, comparison });
-    } catch (err) {
-        console.error('❌ Error:', err);
-        res.status(500).json({ error: 'Scraping failed', details: err.message });
+    if (!productLink) {
+        await browser.close();
+        return { found: false };
     }
-});
 
-const PORT = process.env.PORT || 3000;
+    await page.goto(productLink, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('h1.product__title', { timeout: 10000 });
 
-app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+    const data = await page.evaluate(() => {
+        return {
+            title: document.querySelector('h1.product__title')?.innerText?.trim() || '',
+            subTitle: document.querySelector('.product__sub_title')?.innerText?.trim() || '',
+            salePrice: document.querySelector('.product__sale_price b')?.innerText?.trim() || '',
+            regularPrice: document.querySelector('.product__regular_price')?.innerText?.trim() || '',
+            shortDesc: document.querySelector('.product__short_description')?.innerText?.trim() || '',
+            status: document.querySelector('.stock-status + b')?.innerText?.trim() || '',
+            sku: document.querySelector('.sku-status + b')?.innerText?.trim() || '',
+            image: document.querySelector('.selected__image')?.src || ''
+        };
+    });
+
+    await browser.close();
+    return { found: true, ...data, link: productLink };
+}
+
+async function autoScroll(page) {
+    await page.evaluate(async () => {
+        await new Promise(resolve => {
+            let totalHeight = 0;
+            const distance = 500;
+            const timer = setInterval(() => {
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+                if (totalHeight >= document.body.scrollHeight - window.innerHeight) {
+                    clearInterval(timer);
+                    resolve();
+                }
+            }, 300);
+        });
+    });
+}
+
+module.exports = { searchSumashTech };
