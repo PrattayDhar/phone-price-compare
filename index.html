@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <title>📱 Phone Price Comparison</title>
+  <style>
+    /* CSS Reset & base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    :root {
+      --bg-color-light: #f4f4f4;
+      --text-color-light: #222;
+      --card-bg-light: #fff;
+      --card-shadow-light: rgba(0,0,0,0.1);
+
+      --bg-color-dark: #121212;
+      --text-color-dark: #eee;
+      --card-bg-dark: #1e1e1e;
+      --card-shadow-dark: rgba(255,255,255,0.1);
+
+      --primary-color: #28a745;
+      --primary-color-light: #6fdc93;
+    }
+
+    body.light {
+      --bg-color: var(--bg-color-light);
+      --text-color: var(--text-color-light);
+      --card-bg: var(--card-bg-light);
+      --card-shadow: var(--card-shadow-light);
+    }
+
+    body.dark {
+      --bg-color: var(--bg-color-dark);
+      --text-color: var(--text-color-dark);
+      --card-bg: var(--card-bg-dark);
+      --card-shadow: var(--card-shadow-dark);
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      font-weight: 700;
+      font-size: 2.5rem;
+      user-select: none;
+    }
+
+    /* Search bar container */
+    .search-container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+      box-shadow: 0 3px 6px var(--card-shadow);
+      border-radius: 12px;
+      background-color: var(--card-bg);
+      padding: 10px 15px;
+    }
+
+    #search {
+      flex-grow: 1;
+      font-size: 1.2rem;
+      padding: 12px 15px;
+      border: none;
+      border-radius: 8px;
+      outline-offset: 3px;
+      outline-color: var(--primary-color);
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    #search::placeholder {
+      color: #999;
+    }
+
+    #search:focus {
+      outline: 2.5px solid var(--primary-color);
+      background-color: var(--card-bg);
+    }
+
+    button {
+      padding: 12px 25px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary-color);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 3px 6px rgba(40, 167, 69, 0.4);
+      user-select: none;
+    }
+
+    button:hover {
+      background: var(--primary-color-light);
+    }
+
+    /* Cards styling */
+    #results {
+      width: 100%;
+      max-width: 700px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      box-shadow: 0 3px 8px var(--card-shadow);
+      padding: 15px;
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      transition: border 0.3s, box-shadow 0.3s;
+      border: 2px solid transparent;
+    }
+    .card:hover {
+      box-shadow: 0 6px 14px var(--primary-color-light);
+      border-color: var(--primary-color);
+    }
+
+    .card img {
+      width: 120px;
+      height: auto;
+      border-radius: 10px;
+      object-fit: contain;
+      flex-shrink: 0;
+      background: #ddd;
+    }
+
+    .card div {
+      flex-grow: 1;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .card p {
+      margin: 6px 0;
+      font-size: 1rem;
+    }
+
+    .card p strong {
+      font-weight: 700;
+    }
+
+    .card del {
+      margin-left: 8px;
+      color: #888;
+      font-size: 0.95rem;
+    }
+
+    .card a {
+      color: var(--primary-color);
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 1rem;
+      display: inline-block;
+      margin-top: 10px;
+      user-select: none;
+    }
+    .card a:hover {
+      text-decoration: underline;
+    }
+
+    /* Recommended card highlight & animation */
+    .recommended {
+      border: 3px solid var(--primary-color);
+      animation: blink 1.2s infinite alternate;
+    }
+
+    @keyframes blink {
+      0% {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 10px rgba(40, 167, 69, 0.6);
+      }
+      100% {
+        border-color: var(--primary-color-light);
+        box-shadow: 0 0 15px rgba(40, 167, 69, 0.9);
+      }
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: var(--card-bg);
+      padding: 30px 40px;
+      border-radius: 16px;
+      box-shadow: 0 6px 15px var(--card-shadow);
+      text-align: center;
+      color: var(--text-color);
+      font-size: 1.8rem;
+      font-weight: 700;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      border: 6px solid rgba(0,0,0,0.1);
+      border-top-color: var(--primary-color);
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Toggle switch container */
+    .toggle-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--card-bg);
+      box-shadow: 0 3px 8px var(--card-shadow);
+      border-radius: 50px;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 10000;
+      color: var(--text-color);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .toggle-container input {
+      cursor: pointer;
+      width: 40px;
+      height: 20px;
+      position: relative;
+      appearance: none;
+      background: #bbb;
+      outline: none;
+      border-radius: 10px;
+      transition: background-color 0.3s ease;
+    }
+    .toggle-container input:checked {
+      background: var(--primary-color);
+    }
+    .toggle-container input::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      top: 1px;
+      left: 1px;
+      background: white;
+      transition: transform 0.3s ease;
+    }
+    .toggle-container input:checked::before {
+      transform: translateX(20px);
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 400px) {
+      .card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+      }
+      .card img {
+        width: 100%;
+        max-width: 250px;
+      }
+      .card div {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="light">
+  <h1>📱 Phone Price Comparison</h1>
+
+  <div class="toggle-container" title="Toggle Dark / Light Mode">
+    <label for="modeToggle">Dark Mode</label>
+    <input type="checkbox" id="modeToggle" />
+  </div>
+
+  <div class="search-container">
+    <input id="search" placeholder="Enter phone model..." autocomplete="off" />
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <div id="results"></div>
+
+  <!-- Modal Popup -->
+  <div id="loadingModal" class="modal-overlay">
+    <div class="modal">
+      <div class="spinner"></div>
+      <div>Your Phone Is Cooking 🍳</div>
+    </div>
+  </div>
+
+  <script>
+    const body = document.body;
+    const modeToggle = document.getElementById('modeToggle');
+
+    // Load saved mode or default to light
+    const savedMode = localStorage.getItem('themeMode') || 'light';
+    body.className = savedMode;
+    modeToggle.checked = savedMode === 'dark';
+
+    modeToggle.addEventListener('change', () => {
+      if (modeToggle.checked) {
+        body.className = 'dark';
+        localStorage.setItem('themeMode', 'dark');
+      } else {
+        body.className = 'light';
+        localStorage.setItem('themeMode', 'light');
+      }
+    });
+
+    const loadingModal = document.getElementById('loadingModal');
+    const resultsDiv = document.getElementById('results');
+    const searchInput = document.getElementById('search');
+    const searchBtn = document.getElementById('searchBtn');
+
+    function showLoading() {
+      loadingModal.classList.add('active');
+    }
+    function hideLoading() {
+      loadingModal.classList.remove('active');
+    }
+
+    async function search() {
+      const model = searchInput.value.trim();
+      if (!model) return alert('Please enter a phone name.');
+
+      showLoading();
+      resultsDiv.innerHTML = '';
+
+      try {
+        const res = await fetch(`http://localhost:3000/search?model=${encodeURIComponent(model)}`);
+        if (!res.ok) throw new Error('Network response not ok');
+        const data = await res.json();
+
+        hideLoading();
+
+        if (!data.found || !data.results.length) {
+          resultsDiv.innerHTML = '<p>❌ No matching phones found.</p>';
+          return;
+        }
+
+        // Sort to put recommended first
+        const safeTrimLower = (str) => (typeof str === 'string' ? str.trim().toLowerCase() : '');
+
+        const recTitle = safeTrimLower(data.recommended.title);
+        const recSite = data.recommended.site;
+
+        const sorted = [...data.results].sort((a, b) => {
+          const aTitle = safeTrimLower(a.title);
+          const bTitle = safeTrimLower(b.title);
+          const isARec = aTitle === recTitle && a.site === recSite;
+          const isBRec = bTitle === recTitle && b.site === recSite;
+          return isBRec - isARec;
+        });
+
+        const html = sorted.map(product => {
+          const productTitle = safeTrimLower(product.title);
+          const isRecommended = product.site === recSite && productTitle === recTitle;
+
+          return `
+            <div class="card ${isRecommended ? 'recommended' : ''}">
+              <img src="${product.image}" alt="${product.title || 'Product Image'}" loading="lazy" />
+              <div>
+                <h3>${product.title || 'No Title'}</h3>
+                <p><strong>${product.salePrice || product.price || 'N/A'}</strong> ${product.regularPrice ? `<del>${product.regularPrice}</del>` : ''}</p>
+                <p>Store: <strong>${product.site}</strong></p>
+                ${product.status ? `<p>Status: ${product.status}</p>` : ''}
+                <a href="${product.link}" target="_blank" rel="noopener noreferrer">🔗 View on ${product.site}</a>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        resultsDiv.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        hideLoading();
+        resultsDiv.innerHTML = '<p>❌ Error loading results.</p>';
+      }
+    }
+
+    searchBtn.addEventListener('click', search);
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') search();
+    });
+  </script>
+</body>
+</html>
