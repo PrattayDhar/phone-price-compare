@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 
 // If you want to serve frontend from here, uncomment below:
-// app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const scrapers = [
     { site: 'SumashTech', fn: searchSumashTech },
