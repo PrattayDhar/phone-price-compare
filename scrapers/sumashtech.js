@@ -3,8 +3,18 @@ const puppeteer = require('puppeteer');
 async function searchSumashTech(model) {
     console.log(`\n🔍 [SumashTech] Searching for: "${model}"`);
 
-    const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
-    const page = await browser.newPage();
+    // const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
+    // const page = await browser.newPage();
+    const browser = await puppeteer.launch({
+        headless: "new", // Use the new headless mode
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    });
     await page.goto('https://www.sumashtech.com/category/phone', { waitUntil: 'networkidle2' });
 
     // ✅ Updated selector

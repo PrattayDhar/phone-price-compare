@@ -3,8 +3,18 @@ const puppeteer = require('puppeteer');
 async function searchAppleGadgets(model) {
     console.log(`\n🔍 [AppleGadgets] Searching for: "${model}"`);
 
-    const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
-    const page = await browser.newPage();
+    // const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
+    // const page = await browser.newPage();
+    const browser = await puppeteer.launch({
+        headless: "new", // Use the new headless mode
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    });
 
     const searchUrl = `https://www.applegadgetsbd.com/search?query=${encodeURIComponent(model)}`;
     await page.goto(searchUrl, { waitUntil: 'networkidle2' });

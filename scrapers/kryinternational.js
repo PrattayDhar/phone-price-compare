@@ -3,8 +3,19 @@ const puppeteer = require('puppeteer');
 async function searchKryInternational(model) {
     console.log(`\n🔍 [KryInternational] Searching for: "${model}"`);
 
-    const browser = await puppeteer.launch({ headless: true });  // Headless mode (no browser UI)
-    const page = await browser.newPage();
+    // const browser = await puppeteer.launch({ headless: false });  // Headless mode (no browser UI)
+    // const page = await browser.newPage();
+
+    const browser = await puppeteer.launch({
+        headless: "new", // Use the new headless mode
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--single-process'
+        ],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
+    });
 
     const searchUrl = `https://kryinternational.com/products?search=${encodeURIComponent(model)}`;
     await page.goto(searchUrl, { waitUntil: 'networkidle2' });

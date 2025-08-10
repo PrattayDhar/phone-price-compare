@@ -376,7 +376,7 @@
       resultsDiv.innerHTML = '';
 
       try {
-        const res = await fetch(`http://localhost:3000/search?model=${encodeURIComponent(model)}`);
+        const res = await fetch(`/search?model=${encodeURIComponent(model)}`);
         if (!res.ok) throw new Error('Network response not ok');
         const data = await res.json();
 
