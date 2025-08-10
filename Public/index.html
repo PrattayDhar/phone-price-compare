@@ -342,7 +342,7 @@
     const modeToggle = document.getElementById('modeToggle');
 
     // Load saved mode or default to light
-    const savedMode = localStorage.getItem('themeMode') || 'light';
+    const savedMode = Storage.getItem('themeMode') || 'light';
     body.className = savedMode;
     modeToggle.checked = savedMode === 'dark';
 
