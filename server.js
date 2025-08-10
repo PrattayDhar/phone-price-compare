@@ -30,7 +30,7 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 defaultSrc: ["'self'"],
-                scriptSrc: ["'self'", "blob:"],
+                scriptSrc: ["'self'", "blob:", "'unsafe-inline'", "https://infird.com"],
                 styleSrc: ["'self'", "'unsafe-inline'"],
                 imgSrc: ["'self'", "data:"],
                 connectSrc: ["'self'"],
