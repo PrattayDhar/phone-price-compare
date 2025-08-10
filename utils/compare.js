@@ -1,4 +1,3 @@
-// utils/compare.js
 function cleanPrice(priceStr) {
     if (typeof priceStr !== 'string') return Infinity;  // Return Infinity if no valid price
     const cleaned = priceStr.replace(/[^\d]/g, '');
@@ -7,8 +6,9 @@ function cleanPrice(priceStr) {
 
 function getCheapest(products) {
     return products.reduce((lowest, current) => {
-        const currentPrice = cleanPrice(current.salePrice || current.price || '');
-        const lowestPrice = cleanPrice(lowest.salePrice || lowest.price || '');
+        // Prefer priceNumber if available, else fallback to cleaned price string
+        const currentPrice = typeof current.priceNumber === 'number' ? current.priceNumber : cleanPrice(current.salePrice || current.price || '');
+        const lowestPrice = typeof lowest.priceNumber === 'number' ? lowest.priceNumber : cleanPrice(lowest.salePrice || lowest.price || '');
         return currentPrice < lowestPrice ? current : lowest;
     });
 }

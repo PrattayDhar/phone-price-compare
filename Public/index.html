@@ -337,100 +337,108 @@
     </div>
   </div>
 
-  <script>
-    const body = document.body;
-    const modeToggle = document.getElementById('modeToggle');
+ <script>
+  const body = document.body;
+  const modeToggle = document.getElementById('modeToggle');
 
-    // Load saved mode or default to light
-    const savedMode = Storage.getItem('themeMode') || 'light';
-    body.className = savedMode;
-    modeToggle.checked = savedMode === 'dark';
+  // Load saved mode or default to light
+  const savedMode = localStorage.getItem('themeMode') || 'light';
+  body.className = savedMode;
+  modeToggle.checked = savedMode === 'dark';
 
-    modeToggle.addEventListener('change', () => {
-      if (modeToggle.checked) {
-        body.className = 'dark';
-        localStorage.setItem('themeMode', 'dark');
-      } else {
-        body.className = 'light';
-        localStorage.setItem('themeMode', 'light');
+  modeToggle.addEventListener('change', () => {
+    if (modeToggle.checked) {
+      body.className = 'dark';
+      localStorage.setItem('themeMode', 'dark');
+    } else {
+      body.className = 'light';
+      localStorage.setItem('themeMode', 'light');
+    }
+  });
+
+  const loadingModal = document.getElementById('loadingModal');
+  const resultsDiv = document.getElementById('results');
+  const searchInput = document.getElementById('search');
+  const searchBtn = document.getElementById('searchBtn');
+
+  // Dynamic API URL (set LIVE_API_URL env var on your live server, fallback to localhost)
+  const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3000'
+    : 'https://your-live-domain.com';  // <-- Replace with your live domain
+
+  function showLoading() {
+    loadingModal.classList.add('active');
+  }
+  function hideLoading() {
+    loadingModal.classList.remove('active');
+  }
+
+  async function search() {
+    const model = searchInput.value.trim();
+    if (!model) return alert('Please enter a phone name.');
+
+    showLoading();
+    resultsDiv.innerHTML = '';
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/search?model=${encodeURIComponent(model)}`);
+      if (!res.ok) throw new Error(`Network error: ${res.statusText}`);
+
+      const data = await res.json();
+      hideLoading();
+
+      if (!data.found || !data.results?.length) {
+        resultsDiv.innerHTML = '<p>❌ No matching phones found.</p>';
+        return;
       }
-    });
 
-    const loadingModal = document.getElementById('loadingModal');
-    const resultsDiv = document.getElementById('results');
-    const searchInput = document.getElementById('search');
-    const searchBtn = document.getElementById('searchBtn');
+      const safeTrimLower = str => (typeof str === 'string' ? str.trim().toLowerCase() : '');
 
-    function showLoading() {
-      loadingModal.classList.add('active');
-    }
-    function hideLoading() {
-      loadingModal.classList.remove('active');
-    }
+      const recTitle = safeTrimLower(data.recommended?.title);
+      const recSite = data.recommended?.site;
 
-    async function search() {
-      const model = searchInput.value.trim();
-      if (!model) return alert('Please enter a phone name.');
+      // Sort results to put recommended first
+      const sorted = [...data.results].sort((a, b) => {
+        const aTitle = safeTrimLower(a.title);
+        const bTitle = safeTrimLower(b.title);
+        const isARec = aTitle === recTitle && a.site === recSite;
+        const isBRec = bTitle === recTitle && b.site === recSite;
+        return isBRec - isARec;
+      });
 
-      showLoading();
-      resultsDiv.innerHTML = '';
+      const html = sorted.map(product => {
+        const productTitle = safeTrimLower(product.title);
+        const isRecommended = product.site === recSite && productTitle === recTitle;
 
-      try {
-        const res = await fetch(`/search?model=${encodeURIComponent(model)}`);
-        if (!res.ok) throw new Error('Network response not ok');
-        const data = await res.json();
-
-        hideLoading();
-
-        if (!data.found || !data.results.length) {
-          resultsDiv.innerHTML = '<p>❌ No matching phones found.</p>';
-          return;
-        }
-
-        // Sort to put recommended first
-        const safeTrimLower = (str) => (typeof str === 'string' ? str.trim().toLowerCase() : '');
-
-        const recTitle = safeTrimLower(data.recommended.title);
-        const recSite = data.recommended.site;
-
-        const sorted = [...data.results].sort((a, b) => {
-          const aTitle = safeTrimLower(a.title);
-          const bTitle = safeTrimLower(b.title);
-          const isARec = aTitle === recTitle && a.site === recSite;
-          const isBRec = bTitle === recTitle && b.site === recSite;
-          return isBRec - isARec;
-        });
-
-        const html = sorted.map(product => {
-          const productTitle = safeTrimLower(product.title);
-          const isRecommended = product.site === recSite && productTitle === recTitle;
-
-          return `
-            <div class="card ${isRecommended ? 'recommended' : ''}">
-              <img src="${product.image}" alt="${product.title || 'Product Image'}" loading="lazy" />
-              <div>
-                <h3>${product.title || 'No Title'}</h3>
-                <p><strong>${product.salePrice || product.price || 'N/A'}</strong> ${product.regularPrice ? `<del>${product.regularPrice}</del>` : ''}</p>
-                <p>Store: <strong>${product.site}</strong></p>
-                ${product.status ? `<p>Status: ${product.status}</p>` : ''}
-                <a href="${product.link}" target="_blank" rel="noopener noreferrer">🔗 View on ${product.site}</a>
-              </div>
+        // Some products may not have regularPrice or status, so conditionally render
+        return `
+          <div class="card ${isRecommended ? 'recommended' : ''}">
+            <img src="${product.image || 'https://via.placeholder.com/120x120?text=No+Image'}" alt="${product.title || 'Product Image'}" loading="lazy" />
+            <div>
+              <h3>${product.title || 'No Title'}</h3>
+              <p><strong>${product.salePrice || product.price || 'N/A'}</strong>
+                ${product.regularPrice ? `<del>${product.regularPrice}</del>` : ''}
+              </p>
+              <p>Store: <strong>${product.site || 'Unknown'}</strong></p>
+              ${product.status ? `<p>Status: ${product.status}</p>` : ''}
+              <a href="${product.link || '#'}" target="_blank" rel="noopener noreferrer">🔗 View on ${product.site || 'Store'}</a>
             </div>
-          `;
-        }).join('');
+          </div>
+        `;
+      }).join('');
 
-        resultsDiv.innerHTML = html;
-      } catch (err) {
-        console.error(err);
-        hideLoading();
-        resultsDiv.innerHTML = '<p>❌ Error loading results.</p>';
-      }
+      resultsDiv.innerHTML = html;
+    } catch (err) {
+      console.error(err);
+      hideLoading();
+      resultsDiv.innerHTML = `<p>❌ Error loading results: ${err.message}</p>`;
     }
+  }
 
-    searchBtn.addEventListener('click', search);
-    searchInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') search();
-    });
-  </script>
+  searchBtn.addEventListener('click', search);
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') search();
+  });
+</script>
 </body>
 </html>
