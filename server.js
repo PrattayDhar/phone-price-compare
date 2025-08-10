@@ -2,16 +2,29 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const helmet = require('helmet');
+const fs = require('fs');
 
 const { searchSumashTech } = require('./scrapers/sumashtech');
 const { searchAppleGadgets } = require('./scrapers/applegadgets');
 const { searchKryInternational } = require('./scrapers/kryinternational');
 const { getCheapest, cleanPrice } = require('./utils/compare');
-const fs = require('fs');
-console.log('Server started. __dirname:', __dirname);
-console.log('Public files:', fs.readdirSync(path.join(__dirname, 'public')));
+
 const app = express();
+
+console.log('Server started. __dirname:', __dirname);
+
+const publicPath = path.join(__dirname, 'public');
+console.log('Public folder path:', publicPath);
+console.log('Does public folder exist?', fs.existsSync(publicPath));
+
+if (fs.existsSync(publicPath)) {
+    console.log('Public folder contents:', fs.readdirSync(publicPath));
+} else {
+    console.error('Public folder NOT found! Make sure it is committed and deployed correctly.');
+}
+
 app.use(cors());
+
 app.use(
     helmet({
         contentSecurityPolicy: {
@@ -26,8 +39,8 @@ app.use(
     })
 );
 
-app.use(express.static(path.join(__dirname, 'public')));
-
+// Serve static files from public folder
+app.use(express.static(publicPath));
 
 const scrapers = [
     { site: 'SumashTech', fn: searchSumashTech },
@@ -41,10 +54,9 @@ app.get('/search', async (req, res) => {
         return res.status(400).json({ error: 'Phone model required' });
     }
 
-    const results = [];
-
     try {
         const scrapes = await Promise.allSettled(scrapers.map(s => s.fn(model)));
+        const results = [];
 
         scrapes.forEach((result, index) => {
             if (result.status === 'fulfilled' && result.value.found) {
@@ -70,12 +82,12 @@ app.get('/search', async (req, res) => {
         return res.json({ found: true, results, recommended, comparison });
     } catch (err) {
         console.error('❌ Error:', err);
-        res.status(500).json({ error: 'Scraping failed', details: err.message });
+        return res.status(500).json({ error: 'Scraping failed', details: err.message });
     }
 });
 
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
