@@ -7,7 +7,9 @@ const { searchSumashTech } = require('./scrapers/sumashtech');
 const { searchAppleGadgets } = require('./scrapers/applegadgets');
 const { searchKryInternational } = require('./scrapers/kryinternational');
 const { getCheapest, cleanPrice } = require('./utils/compare');
-
+const fs = require('fs');
+console.log('Server started. __dirname:', __dirname);
+console.log('Public files:', fs.readdirSync(path.join(__dirname, 'public')));
 const app = express();
 app.use(cors());
 app.use(
@@ -25,6 +27,7 @@ app.use(
 );
 
 app.use(express.static(path.join(__dirname, 'public')));
+
 
 const scrapers = [
     { site: 'SumashTech', fn: searchSumashTech },
